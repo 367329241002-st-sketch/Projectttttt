@@ -39,11 +39,45 @@ export const localTopics = [
 
 export const fetchRemoteTopics = async () => {
   try {
-    const response = await fetch('https://raw.githubusercontent.com/367329241002-st-sketch/Project/refs/heads/main/Data.json');
+    // 📌 1. เปลี่ยนใช้ URL ใหม่ + เติม Timestamp ป้องกันปัญหา Cache
+    const rawUrl = `https://raw.githubusercontent.com/367329241002-st-sketch/Projectttttt/main/react_native_knowledge_24_topics.json?t=${Date.now()}`;
+    
+    const response = await fetch(rawUrl);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const json = await response.json();
-    return json;
+    const rawList = Array.isArray(json) ? json : (json.data || []);
+
+    // 📌 2. แมปข้อมูลให้ตรงตามโครงสร้าง JSON บน GitHub ใหม่
+    const formattedData = rawList.map((item, index) => {
+      let imgPath = item.image || '';
+
+      // แปลง Path รูปภาพ เช่น "images/rn01.png" ให้กลายเป็น GitHub Raw URL เต็มรูป
+      if (imgPath && !imgPath.startsWith('http')) {
+        const cleanPath = imgPath.startsWith('/') ? imgPath.slice(1) : imgPath;
+        imgPath = `https://raw.githubusercontent.com/367329241002-st-sketch/Projectttttt/main/${cleanPath}`;
+      }
+
+      return {
+        id: String(item.id || index + 1),
+        title: item.topic || item.title || 'ไม่มีหัวข้อ',
+        category: item.category || 'ทั่วไป',
+        image: imgPath || 'https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500',
+        ui1: item.summary || item.concept || item.ui1 || 'ไม่มีข้อมูล',
+        ui2: item.explanation || item.ui2 || 'ไม่มีข้อมูล',
+        ui3: Array.isArray(item.purpose) 
+          ? item.purpose.join('\n• ') 
+          : (item.application || item.ui3 || 'ไม่มีข้อมูล')
+      };
+    });
+
+    return formattedData;
   } catch (error) {
-    console.error('Error fetching remote json:', error);
+    console.error('Fetch GitHub Error:', error);
+    alert('ไม่สามารถดึงข้อมูลจาก GitHub ได้ กรุณาเช็กอินเทอร์เน็ตหรือ URL');
     return [];
   }
 };
